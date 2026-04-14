@@ -16,61 +16,58 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create branches for each module
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Process Modules
         run: |
           if [ ! -d "modules" ]; then
-            echo "modules directory does not exist"
+            echo "modules directory not found."
             exit 0
           fi
 
+          # 获取当前发布对应的 Commit ID
+          TARGET_COMMIT=${{ github.event.release.target_commitish }}
+          TAG_NAME=${{ github.event.release.tag_name }}
+
+          # 遍历 modules 目录
           for dir in modules/*/; do
-            # Remove trailing slash and get folder name
             folder_name=$(basename "$dir")
-            
-            # Skip if not a directory
-            if [ ! -d "modules/$folder_name" ]; then
-              continue
-            fi
-
             branch_name="module-$folder_name"
-            echo "Processing module: $folder_name -> branch: $branch_name"
+          
+            echo "------------------------------------------"
+            echo "Processing: $folder_name"
+          
+            # 1. 将模块内容拷贝到临时目录（防止 git rm 删掉源文件）
+            temp_dir=$(mktemp -d)
+            cp -r "modules/$folder_name"/. "$temp_dir/"
 
-            if git ls-remote --heads origin "$branch_name" | grep -q "$branch_name"; then
-              echo "Branch $branch_name exists, updating via merge..."
-              
-              # Create a temp branch for the new content
-              git checkout ${{ github.event.release.target_commitish }}
-              git checkout -b "temp-$branch_name"
-              
-              # Clean and copy only the module content
-              git rm -rf .
-              cp -r "modules/$folder_name"/* .
-              git add -A
-              git commit -m "Update module: $folder_name (from release ${{ github.event.release.tag_name }})"
-              
-              # Merge into existing module branch
+            # 2. 处理分支
+            if git show-ref --verify --quiet "refs/remotes/origin/$branch_name"; then
+              echo "Updating existing branch: $branch_name"
               git checkout "$branch_name"
-              git merge "temp-$branch_name" --no-edit
-              git push origin "$branch_name"
-              
-              # Clean up temp branch
-              git branch -D "temp-$branch_name"
+              git pull origin "$branch_name"
             else
-              echo "Creating new branch: $branch_name"
-              
-              # Create orphan branch
+              echo "Creating new orphan branch: $branch_name"
               git checkout --orphan "$branch_name"
-              git rm -rf .
-              
-              # Copy module folder to root
-              cp -r "modules/$folder_name"/* .
-              
-              # Add and commit
-              git add -A
-              git commit -m "Initial release: $folder_name (from release ${{ github.event.release.tag_name }})"
-              git push -u origin "$branch_name"
             fi
-            
-            # Go back to original branch
-            git checkout ${{ github.event.release.target_commitish }}
+
+            # 3. 清空当前分支内容并替换
+            git rm -rf . > /dev/null 2>&1 || true
+            cp -r "$temp_dir"/. .
+          
+            # 4. 提交并推送
+            if [ -n "$(git status --porcelain)" ]; then
+              git add -A
+              git commit -m "Release $TAG_NAME: Update module $folder_name"
+              git push origin "$branch_name"
+            else
+              echo "No changes for $folder_name, skipping push."
+            fi
+
+            # 5. 切回原始 Commit 以进行下一次循环
+            git checkout -f $TARGET_COMMIT
+            rm -rf "$temp_dir"
           done
