@@ -14,6 +14,67 @@
 - **String Processing** - Formatting and encoding conversion utilities
 - **Utility Functions** - Assertions, hashing, exception handling, and more
 
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Compiler**: MSVC (currently the only compiler with full C++23 Modules support)
+- **CMake**: Version 4.1 or higher
+- **IDE**: CLion recommended
+-
+### CMake Integration
+
+**We recommend using our [project scaffolding](https://github.com/f-collection-mcxx/scaffolding.ixx) for development**
+
+Clone the distribution branch
+```bash
+git clone --branch module-f --single-branch https://github.com/f-collection-mcxx/f.ixx.git 3rdparty/f
+```
+Register in CMake
+```cmake
+# Add subdirectory
+add_subdirectory(3rdparty/f)
+
+# Link library
+target_link_libraries(your_target PRIVATE f)
+```
+
+## 📁 Project Structure
+
+```
+f.ixx/
+├── CMakeLists.txt              # Root CMake configuration
+├── cmake/
+│   └── f.scaffolding.cmake     # Module build helper functions
+├── modules/
+│   └── f/
+│       ├── CMakeLists.txt      # f module build configuration
+│       └── src/
+│           ├── f.ixx           # Main module (exports all submodules)
+│           ├── assert.ixx      # Assertion utilities
+│           ├── deque.ixx       # Polymorphic deque container
+│           ├── exception.ixx   # Exception handling
+│           ├── hash.ixx        # Hash utilities
+│           ├── memory.ixx      # Memory management
+│           ├── pack.ixx        # Type list utilities
+│           ├── rtt.ixx         # Runtime type & type erasure
+│           ├── string.ixx      # String processing
+│           ├── utilities.ixx   # Utility functions
+│           └── vector.ixx      # Polymorphic vector container
+└── README.md
+```
+
+## 🔧 Technical Features
+
+- **C++23 Modules** - Modular compilation for improved compile times and code organization
+- **PMR (Polymorphic Memory Resource)** - Flexible memory management strategies
+- **Concepts** - C++20/23 Concepts for compile-time type constraints
+- **Modern C++ Best Practices** - RAII, move semantics, perfect forwarding, etc.
+
+## 📝 License
+
+This project is licensed under [Boost License](./LICENSE) 
+
 ## 🎯 Core Modules
 
 ### `f::memory` - Memory Management
@@ -129,90 +190,6 @@ using last = pack::last;             // std::string
 using second = pack::at<1>;          // double
 ```
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Compiler**: MSVC (currently the only compiler with full C++23 Modules support)
-- **CMake**: Version 4.1 or higher
-- **IDE**: CLion recommended
-
-### Build Steps
-
-1. **Clone the repository**
-
-```bash
-git clone <repository-url>
-cd f.ixx
-```
-
-2. **Open project in CLion**
-
-   - Select `File -> Open`, choose the `f.ixx` directory
-
-3. **Configure MSVC Toolchain** (if not configured)
-
-   - `File -> Settings -> Build, Execution, Deployment -> Toolchains`
-   - Click `+` to add a new toolchain, select `Visual Studio`
-   - Enter your local Visual Studio installation path
-
-4. **Configure CMake**
-
-   - `File -> Settings -> Build, Execution, Deployment -> CMake`
-   - Set `Generator` to `Let CMake decide`
-   - Click `Reset Cache and Reload CMake Project`
-
-5. **Build the project**
-
-   - Select `Build -> Build Project`
-
-### CMake Integration
-
-Integrate `f.ixx` into your project:
-
-```cmake
-# Add subdirectory
-add_subdirectory(path/to/f.ixx/modules/f)
-
-# Link library
-target_link_libraries(your_target PRIVATE f)
-```
-
-## 📁 Project Structure
-
-```
-f.ixx/
-├── CMakeLists.txt              # Root CMake configuration
-├── cmake/
-│   └── f.scaffolding.cmake     # Module build helper functions
-├── modules/
-│   └── f/
-│       ├── CMakeLists.txt      # f module build configuration
-│       └── src/
-│           ├── f.ixx           # Main module (exports all submodules)
-│           ├── assert.ixx      # Assertion utilities
-│           ├── deque.ixx       # Polymorphic deque container
-│           ├── exception.ixx   # Exception handling
-│           ├── hash.ixx        # Hash utilities
-│           ├── memory.ixx      # Memory management
-│           ├── pack.ixx        # Type list utilities
-│           ├── rtt.ixx         # Runtime type & type erasure
-│           ├── string.ixx      # String processing
-│           ├── utilities.ixx   # Utility functions
-│           └── vector.ixx      # Polymorphic vector container
-└── README.md
-```
-
-## 🔧 Technical Features
-
-- **C++23 Modules** - Modular compilation for improved compile times and code organization
-- **PMR (Polymorphic Memory Resource)** - Flexible memory management strategies
-- **Concepts** - C++20/23 Concepts for compile-time type constraints
-- **Modern C++ Best Practices** - RAII, move semantics, perfect forwarding, etc.
-
-## 📝 License
-
-This project is licensed under the terms specified in the [LICENSE](./LICENSE) file.
 
 ## 🤝 Contributing
 

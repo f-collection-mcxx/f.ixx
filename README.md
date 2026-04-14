@@ -14,6 +14,67 @@
 - **字符串处理** - 格式化与编码转换工具
 - **工具函数** - 断言、哈希、异常处理等实用工具
 
+## 🚀 快速开始
+
+### 前置要求
+
+- **编译器**: MSVC（目前唯一完全支持 C++23 Modules 的编译器）
+- **CMake**: 版本 4.1 或更高
+- **IDE**: 推荐使用 CLion
+
+### CMake 集成
+
+**推荐使用我们的[项目脚手架](https://github.com/f-collection-mcxx/scaffolding.ixx)进行开发**
+
+克隆分发分支
+```bash
+git clone --branch module-f --single-branch https://github.com/f-collection-mcxx/f.ixx.git 3rdparty/f
+```
+在cmake中注册
+```cmake
+# 添加子目录
+add_subdirectory(3rdparty/f)
+
+# 链接库
+target_link_libraries(your_target PRIVATE f)
+```
+
+## 📁 项目结构
+
+```
+f.ixx/
+├── CMakeLists.txt              # 根 CMake 配置
+├── cmake/
+│   └── f.scaffolding.cmake     # 模块构建辅助函数
+├── modules/
+│   └── f/
+│       ├── CMakeLists.txt      # f 模块构建配置
+│       └── src/
+│           ├── f.ixx           # 主模块（导出所有子模块）
+│           ├── assert.ixx      # 断言工具
+│           ├── deque.ixx       # 多态 deque 容器
+│           ├── exception.ixx   # 异常处理
+│           ├── hash.ixx        # 哈希工具
+│           ├── memory.ixx      # 内存管理
+│           ├── pack.ixx        # 类型列表工具
+│           ├── rtt.ixx         # 运行时类型与类型擦除
+│           ├── string.ixx      # 字符串处理
+│           ├── utilities.ixx   # 工具函数
+│           └── vector.ixx      # 多态 vector 容器
+└── README.md
+```
+
+## 🔧 技术特性
+
+- **C++23 Modules** - 使用模块化编译，提升编译速度和代码组织
+- **PMR (Polymorphic Memory Resource)** - 灵活的内存管理策略
+- **Concepts** - 使用 C++20/23 Concepts 提供编译时类型约束
+- **现代 C++ 最佳实践** - RAII、移动语义、完美转发等
+
+## 📝 许可证
+
+本项目采用 [Boost](./LICENSE) 许可证。
+
 ## 🎯 核心模块
 
 ### `f::memory` - 内存管理
@@ -129,92 +190,6 @@ using last = pack::last;             // std::string
 using second = pack::at<1>;          // double
 ```
 
-## 🚀 快速开始
-
-### 前置要求
-
-- **编译器**: MSVC（目前唯一完全支持 C++23 Modules 的编译器）
-- **CMake**: 版本 4.1 或更高
-- **IDE**: 推荐使用 CLion
-
-### CMake 集成
-
-在您的项目中集成 `f.ixx`：
-
-```cmake
-# 添加子目录
-add_subdirectory(path/to/f.ixx/modules/f)
-
-# 链接库
-target_link_libraries(your_target PRIVATE f)
-```
-
-### 构建步骤
-
-1. **克隆项目**
-
-```bash
-git clone https://github.com/f-collection-mcxx/f.ixx.git
-cd f.ixx
-```
-
-2. **使用 CLion 打开项目**
-
-   - 选择 `File -> Open`，选择 `f.ixx` 目录
-
-3. **配置 MSVC 工具链**（如未配置）
-
-   - `File -> Settings -> Build, Execution, Deployment -> Toolchains`
-   - 点击 `+` 添加新工具链，选择 `Visual Studio`
-   - 输入本地 Visual Studio 安装路径
-
-4. **配置 CMake**
-
-   - `File -> Settings -> Build, Execution, Deployment -> CMake`
-   - 将 `生成器` 设置为 `让 CMake 决定`
-   - 点击 `重置缓存并重新加载 CMake 项目`
-
-5. **构建项目**
-
-   - 选择 `Build -> Build Project`
-
-
-
-## 📁 项目结构
-
-```
-f.ixx/
-├── CMakeLists.txt              # 根 CMake 配置
-├── cmake/
-│   └── f.scaffolding.cmake     # 模块构建辅助函数
-├── modules/
-│   └── f/
-│       ├── CMakeLists.txt      # f 模块构建配置
-│       └── src/
-│           ├── f.ixx           # 主模块（导出所有子模块）
-│           ├── assert.ixx      # 断言工具
-│           ├── deque.ixx       # 多态 deque 容器
-│           ├── exception.ixx   # 异常处理
-│           ├── hash.ixx        # 哈希工具
-│           ├── memory.ixx      # 内存管理
-│           ├── pack.ixx        # 类型列表工具
-│           ├── rtt.ixx         # 运行时类型与类型擦除
-│           ├── string.ixx      # 字符串处理
-│           ├── utilities.ixx   # 工具函数
-│           └── vector.ixx      # 多态 vector 容器
-└── README.md
-```
-
-## 🔧 技术特性
-
-- **C++23 Modules** - 使用模块化编译，提升编译速度和代码组织
-- **PMR (Polymorphic Memory Resource)** - 灵活的内存管理策略
-- **Concepts** - 使用 C++20/23 Concepts 提供编译时类型约束
-- **现代 C++ 最佳实践** - RAII、移动语义、完美转发等
-
-## 📝 许可证
-
-本项目采用 [Boost](./LICENSE) 许可证。
 
 ## 🤝 贡献
 
