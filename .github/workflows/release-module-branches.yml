@@ -1,0 +1,76 @@
+name: Create Module Branches on Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  create-module-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create branches for each module
+        run: |
+          if [ ! -d "modules" ]; then
+            echo "modules directory does not exist"
+            exit 0
+          fi
+
+          for dir in modules/*/; do
+            # Remove trailing slash and get folder name
+            folder_name=$(basename "$dir")
+            
+            # Skip if not a directory
+            if [ ! -d "modules/$folder_name" ]; then
+              continue
+            fi
+
+            branch_name="module-$folder_name"
+            echo "Processing module: $folder_name -> branch: $branch_name"
+
+            if git ls-remote --heads origin "$branch_name" | grep -q "$branch_name"; then
+              echo "Branch $branch_name exists, updating via merge..."
+              
+              # Create a temp branch for the new content
+              git checkout ${{ github.event.release.target_commitish }}
+              git checkout -b "temp-$branch_name"
+              
+              # Clean and copy only the module content
+              git rm -rf .
+              cp -r "modules/$folder_name"/* .
+              git add -A
+              git commit -m "Update module: $folder_name (from release ${{ github.event.release.tag_name }})"
+              
+              # Merge into existing module branch
+              git checkout "$branch_name"
+              git merge "temp-$branch_name" --no-edit
+              git push origin "$branch_name"
+              
+              # Clean up temp branch
+              git branch -D "temp-$branch_name"
+            else
+              echo "Creating new branch: $branch_name"
+              
+              # Create orphan branch
+              git checkout --orphan "$branch_name"
+              git rm -rf .
+              
+              # Copy module folder to root
+              cp -r "modules/$folder_name"/* .
+              
+              # Add and commit
+              git add -A
+              git commit -m "Initial release: $folder_name (from release ${{ github.event.release.tag_name }})"
+              git push -u origin "$branch_name"
+            fi
+            
+            # Go back to original branch
+            git checkout ${{ github.event.release.target_commitish }}
+          done
