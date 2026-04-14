@@ -115,7 +115,13 @@ public:
     template<typename T>
     static
     auto of() noexcept {
-        return type_t{std::in_place_type<T>};
+        if constexpr (std::same_as<T, void>) {
+            return nullptr;
+        }
+        else {
+            static type_t unit{std::in_place_type<T>};
+            return &unit;
+        }
     }
 
     type_t() = default;
@@ -127,26 +133,30 @@ public:
             _info{typeid(T)},
             _size{sizeof(T)},
             _align{alignof(T)},
-            _destructor{[](auto&& ptr){ ptr -> ~T(); }}{
+            _destructor{[](std::byte* ptr) {
+                if constexpr (requires{ptr -> ~T();}) {
+                    ptr -> ~T();
+                }
+            }}{
         if constexpr (std::is_default_constructible_v<T>)
-            _default_constructor = [](auto&& ptr) {
+            _default_constructor = [](std::byte* ptr) {
                 new (ptr) T {};
             };
         if constexpr (std::is_copy_constructible_v<T>)
-            _copy_constructor = [](auto&& dst, auto&& src) {
+            _copy_constructor = [](std::byte* dst, const std::byte* src) {
                 new (dst) T {reinterpret_cast<const T&>(*src)};
             };
         if constexpr (std::is_move_constructible_v<T>)
-            _move_constructor = [](auto&& dst, auto&& src) {
+            _move_constructor = [](std::byte* dst, std::byte* src) {
                 new (dst) T {std::move(reinterpret_cast<T&>(*src))};
             };
         if constexpr (std::is_copy_assignable_v<T>)
-            _copier = [](auto&& dst, auto&& src) {
+            _copier = [](std::byte* dst, const std::byte* src) {
                 reinterpret_cast<T&>(*dst) =
                     reinterpret_cast<const T&>(*src);
             };
         if constexpr (std::is_move_assignable_v<T>)
-            _mover = [](auto&& dst, auto&& src) {
+            _mover = [](std::byte* dst, std::byte* src) {
                 reinterpret_cast<T&>(*dst) =
                     std::move(reinterpret_cast<T&>(*src));
             };
@@ -182,6 +192,7 @@ private:
     mover_t*
         _mover{};
 };
+
 
 template<typename T, typename U>
 requires std::is_class_v<U>
@@ -229,40 +240,43 @@ public:
             throw std::bad_any_cast{};
 
         if constexpr (std::is_const_v<std::remove_reference_t<U>>)
-            return *reinterpret_cast<const T*>(self._buffer.data());
+            return *std::launder(reinterpret_cast<const T*>(self._buffer.data()));
         else
-            return *reinterpret_cast<T*>(self._buffer.data());
+            return *std::launder(reinterpret_cast<T*>(self._buffer.data()));
     }
 
     template<typename T, typename ...Args>
     T& emplace(Args&& ... args) {
         clear();
         _type = type_t::of<T>();
-        _buffer.resize(_type.size());
+        _buffer.resize(_type->size());
         const auto p = new (_buffer.data()) T {std::forward<Args>(args)...};
         return *p;
     }
 
     void clear() {
-        _type.destroy(_buffer.data());
-        _buffer.clear();
+        if (_type) {
+            _type->destroy(_buffer.data());
+            _buffer.clear();
+        }
+        _type = nullptr;
     }
 
 
     any& operator = (const any& other) {
         if (_type == other._type)
-            _type.copy(_buffer.data(), other._buffer.data());
+            _type->copy(_buffer.data(), other._buffer.data());
         else {
             clear();
             _type = other._type;
-            _buffer.resize(_type.size());
-            _type.make(_buffer.data(), other._buffer.data());
+            _buffer.resize(_type->size());
+            _type->make(_buffer.data(), other._buffer.data());
         }
         return *this;
     }
 
     any& operator = (any&& other) noexcept {
-        _type.destroy(_buffer.data());
+        _type->destroy(_buffer.data());
         _type = std::move(other._type);
         _buffer = std::move(other._buffer);
         return *this;
@@ -282,7 +296,7 @@ public:
     any(const any& other) :
         _buffer{other._buffer.size()},
         _type{other._type}{
-        _type.make(_buffer.data(), other._buffer.data());
+        _type->make(_buffer.data(), other._buffer.data());
     }
     ~any() {
         clear();
@@ -293,7 +307,7 @@ public:
 private:
     std::pmr::vector<std::byte>
         _buffer{};
-    type_t
+    type_t*
         _type{};
 };
 

@@ -47,7 +47,7 @@ private:
 template<typename T>
 class equal_or_throw<T, void> {
 public:
-    explicit
+    explicit constexpr
     equal_or_throw(T&& expected) noexcept:
         expected{std::move(expected)}
     {}
@@ -64,7 +64,7 @@ private:
 template<typename T>
 class not_equal_or_throw<T, void> {
 public:
-    explicit
+    explicit constexpr
     not_equal_or_throw(T&& unexpected) noexcept:
         unexpected{std::move(unexpected)}
     {}
@@ -78,7 +78,7 @@ private:
     T unexpected;
 };
 
-template<typename T>
-constexpr auto nonnull = not_equal_or_throw<T*>{nullptr};
+// ReSharper disable once CppVariableCanBeMadeConstexpr
+const auto nonnull = not_equal_or_throw<void*>{nullptr};
 
 }

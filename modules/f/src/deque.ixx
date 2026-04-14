@@ -38,9 +38,8 @@ public:
             p = get_allocator().template new_object<U>(get_allocator(), std::forward<Args>(args)...);
         else
             p = get_allocator().template new_object<U>(std::forward<Args>(args)..., get_allocator());
-        super::emplace_back(f::dynamic_unique_ptr<T>{p, f::dynamic_deleter<U>{}});
-        _size.emplace_back(sizeof(T));
-        _align.emplace_back(alignof(T));
+        super::emplace_back(p);
+        _size_n_align.emplace_back(sizeof(T), alignof(T));
         return *p;
     }
 
@@ -57,51 +56,45 @@ public:
             p = get_allocator().template new_object<U>(get_allocator(), std::forward<Args>(args)...);
         else
             p = get_allocator().template new_object<U>(std::forward<Args>(args)..., get_allocator());
-        super::emplace_front(f::dynamic_unique_ptr<T>{p, f::dynamic_deleter<U>{}});
-        _size.emplace_front(sizeof(T));
-        _align.emplace_front(alignof(T));
+        super::emplace_front(p);
+        _size_n_align.emplace_front(sizeof(T), alignof(T));
         return *p;
     }
 
     auto release_back() {
         auto b = super::back();
-        auto sz = _size.back();
-        auto alg = _align.back();
+        auto [sz, alg] = _size_n_align.back();
         super::pop_back();
-        _size.pop_back();
-        _align.pop_back();
+        _size_n_align.pop_back();
 
         return dynamic_unique_ptr<T>{b, dynamic_deleter<T>{super::get_allocator().resource(), sz, alg}};
     }
 
     auto release_front() {
         auto f = super::front();
-        auto sz = _size.front();
-        auto alg = _align.front();
+        auto [sz, alg] = _size_n_align.front();
         super::pop_front();
-        _size.pop_front();
-        _align.pop_front();
+        _size_n_align.pop_front();
 
         return dynamic_unique_ptr<T>{f, dynamic_deleter<T>{super::get_allocator().resource(), sz, alg}};
     }
 
     void clear() {
-        for (auto&& [ptr, sz, alg]: std::views::zip(*this, _size, _align)) {
+        for (auto&& [ptr, pak]: std::views::zip(*this, _size_n_align)) {
             ptr->~T();
+            auto& [sz, alg] = pak;
             super::get_allocator().deallocate_bytes(ptr, sz, alg);
         }
         super::clear();
-        _size.clear();
-        _align.clear();
+        _size_n_align.clear();
     }
     void swap(dynamic_deque& other) noexcept {
         super::swap(other);
-        _size.swap(other._size);
-        _align.swap(other._align);
+        _size_n_align.swap(other._size_n_align);
     }
 
     explicit dynamic_deque(const std::pmr::polymorphic_allocator<>& alloc=std::pmr::get_default_resource()):
-        super{alloc}, _size{alloc}, _align{alloc}{}
+        super{alloc}, _size_n_align{alloc}{}
     dynamic_deque(dynamic_deque&& expired) noexcept {
         swap(expired);
     }
@@ -114,9 +107,8 @@ public:
     void operator = (const dynamic_deque&)=delete;
 
 private:
-    std::pmr::deque<std::size_t>
-        _size,
-        _align;
+    std::pmr::deque<std::pair<std::size_t, std::size_t>>
+        _size_n_align{super::get_allocator()};
 };
 
 }

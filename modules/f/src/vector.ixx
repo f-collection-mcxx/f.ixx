@@ -37,38 +37,34 @@ public:
         else
             p = get_allocator().template new_object<U>(std::forward<Args>(args)..., get_allocator());
         super::emplace_back(p);
-        _size.emplace_back(sizeof(T));
-        _align.emplace_back(alignof(T));
+        _size_n_align.emplace_back(sizeof(T), alignof(T));
         return *p;
     }
     auto release_back() {
         auto b = super::back();
-        auto sz = _size.back();
-        auto alg = _align.back();
+        auto [sz, alg] = _size_n_align.back();
         super::pop_back();
-        _size.pop_back();
-        _align.pop_back();
+        _size_n_align.pop_back();
 
         return dynamic_unique_ptr<T>{b, dynamic_deleter<T>{super::get_allocator().resource(), sz, alg}};
     }
 
     void clear() {
-        for (auto&& [ptr, sz, alg]: std::views::zip(*this, _size, _align)) {
+        for (auto&& [ptr, pak]: std::views::zip(*this, _size_n_align)) {
             ptr->~T();
+            auto& [sz, alg] = pak;
             super::get_allocator().deallocate_bytes(ptr, sz, alg);
         }
         super::clear();
-        _size.clear();
-        _align.clear();
+        _size_n_align.clear();
     }
     void swap(dynamic_vector& other) noexcept {
         super::swap(other);
-        _size.swap(other._size);
-        _align.swap(other._align);
+        _size_n_align.swap(other._size_n_align);
     }
 
     explicit dynamic_vector(const std::pmr::polymorphic_allocator<>& alloc=std::pmr::get_default_resource()):
-        super{alloc}, _size{alloc}, _align{alloc}{}
+        super{alloc}, _size_n_align{alloc}{}
     dynamic_vector(dynamic_vector&& expired) noexcept {
         swap(expired);
     }
@@ -81,9 +77,8 @@ public:
     void operator = (const dynamic_vector&)=delete;
 
 private:
-    std::pmr::vector<std::size_t>
-        _size{super::get_allocator()},
-        _align{super::get_allocator()};
+    std::pmr::vector<std::pair<std::size_t, std::size_t>>
+        _size_n_align{super::get_allocator()};
 };
 
 }

@@ -10,19 +10,16 @@ import :pack;
 export namespace f {
 
 template<typename... Args>
-auto format_with_resource(std::format_string<Args...>&& fmt, std::pmr::memory_resource* resource, Args&& ...args) noexcept {
+auto format(std::format_string<Args...>&& fmt, std::pmr::memory_resource* resource, Args&& ...args) noexcept {
     auto buffer = std::pmr::string{resource};
     std::format_to(std::back_inserter(buffer), std::move(fmt), std::forward<Args>(args)...);
     return buffer;
 }
 
 template<typename... Args>
+requires (!std::convertible_to<first_t<Args...>, std::pmr::memory_resource*>)
 auto format(std::format_string<Args...>&& fmt, Args&& ...args) noexcept {
-    using pak = pack<Args...>;
-    if constexpr (std::same_as<typename pak::first, std::pmr::memory_resource*>)
-        return format_with_resource(std::move(fmt), std::forward<Args>(args)...);
-    else
-        return format_with_resource(std::move(fmt), std::pmr::get_default_resource(), std::forward<Args>(args)...);
+    return format(std::move(fmt), std::pmr::get_default_resource(), std::forward<Args>(args)...);
 }
 
 template<typename Alloc>
@@ -34,17 +31,16 @@ auto& cvt(
     auto state = std::mbstate_t{};
     auto p = mbs.data();
     // ReSharper disable once CppDeprecatedEntity
-    std::mbsrtowcs(buf.data(), &p, buf.length()+1, &state);
+    buf.resize(std::mbsrtowcs(buf.data(), &p, buf.length()+1, &state));
     return buf;
 }
 
-template<typename Alloc>
-std::basic_string<wchar_t, std::char_traits<wchar_t>, Alloc> cvt(
-    const std::basic_string<char, std::char_traits<char>, Alloc>& mbs) {
+std::pmr::wstring cvt(
+    const std::pmr::string& mbs) {
 
     auto p = mbs.data();
     auto state = std::mbstate_t{};
-    auto buf = std::basic_string<wchar_t, std::char_traits<wchar_t>, Alloc>{
+    auto buf = std::pmr::wstring{
         mbs.size(), L'\x00', mbs.get_allocator()};
     // ReSharper disable once CppDeprecatedEntity
     buf.resize(std::mbsrtowcs(buf.data(), &p, buf.length()+1, &state));
@@ -60,16 +56,16 @@ auto& cvt(
     auto state = std::mbstate_t{};
     auto p = wcs.data();
     // ReSharper disable once CppDeprecatedEntity
-    std::wcsrtombs(buf.data(), &p, buf.length()+1, &state);
+    buf.resize(std::wcsrtombs(buf.data(), &p, buf.length()+1, &state));
     return buf;
 }
 
-template<typename Alloc>
-std::basic_string<char, std::char_traits<char>, Alloc> cvt(
-    const std::basic_string<wchar_t, std::char_traits<wchar_t>, Alloc>& wcs) {
+
+std::pmr::string cvt(
+    const std::pmr::wstring& wcs) {
     auto p = wcs.data();
     auto state = std::mbstate_t{};
-    auto buf = std::basic_string<char, std::char_traits<char>, Alloc>{
+    auto buf = std::pmr::string{
         wcs.size() * sizeof(wchar_t), '\x00', wcs.get_allocator()};
     // ReSharper disable once CppDeprecatedEntity
     buf.resize(std::wcsrtombs(buf.data(), &p, buf.length()+1, &state));
