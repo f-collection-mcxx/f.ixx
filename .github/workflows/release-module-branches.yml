@@ -14,63 +14,42 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # subtree 必须获取完整的历史记录才能提取分支
 
-      - name: Create branches for each module
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Split and Push Module Branches
         run: |
           if [ ! -d "modules" ]; then
-            echo "modules directory does not exist"
+            echo "modules directory does not exist, exiting."
             exit 0
           fi
 
+          # 遍历 modules 下的一级子目录
           for dir in modules/*/; do
-            # Remove trailing slash and get folder name
+            # 去掉末尾斜杠并获取文件夹名
             folder_name=$(basename "$dir")
-            
-            # Skip if not a directory
-            if [ ! -d "modules/$folder_name" ]; then
-              continue
-            fi
-
             branch_name="module-$folder_name"
-            echo "Processing module: $folder_name -> branch: $branch_name"
-
-            if git ls-remote --heads origin "$branch_name" | grep -q "$branch_name"; then
-              echo "Branch $branch_name exists, updating via merge..."
-              
-              # Create a temp branch for the new content
-              git checkout ${{ github.event.release.target_commitish }}
-              git checkout -b "temp-$branch_name"
-              
-              # Clean and copy only the module content
-              git rm -rf .
-              cp -r "modules/$folder_name"/* .
-              git add -A
-              git commit -m "Update module: $folder_name (from release ${{ github.event.release.tag_name }})"
-              
-              # Merge into existing module branch
-              git checkout "$branch_name"
-              git merge "temp-$branch_name" --no-edit
-              git push origin "$branch_name"
-              
-              # Clean up temp branch
-              git branch -D "temp-$branch_name"
+          
+            echo "------------------------------------------------"
+            echo "Processing module: $folder_name"
+          
+            # 使用 git subtree split 提取子目录历史并推送到对应分支
+            # --prefix: 指定子目录路径
+            # --onto: 如果分支已存在，可以基于它进行操作（可选）
+            # 这里的逻辑是：将 modules/name 拆分为一个临时提交，然后强推到远程分支
+          
+            # 这里的写法是：先在本地拆分出一个临时的 commit ID
+            SPLIT_SHA=$(git subtree split --prefix="modules/$folder_name")
+          
+            if [ -n "$SPLIT_SHA" ]; then
+              echo "Pushing $folder_name (SHA: $SPLIT_SHA) to $branch_name"
+              # 强制推送该 commit 到远程分支
+              git push origin "$SPLIT_SHA:refs/heads/$branch_name" --force
             else
-              echo "Creating new branch: $branch_name"
-              
-              # Create orphan branch
-              git checkout --orphan "$branch_name"
-              git rm -rf .
-              
-              # Copy module folder to root
-              cp -r "modules/$folder_name"/* .
-              
-              # Add and commit
-              git add -A
-              git commit -m "Initial release: $folder_name (from release ${{ github.event.release.tag_name }})"
-              git push -u origin "$branch_name"
+              echo "Failed to split subtree for $folder_name"
             fi
-            
-            # Go back to original branch
-            git checkout ${{ github.event.release.target_commitish }}
           done
