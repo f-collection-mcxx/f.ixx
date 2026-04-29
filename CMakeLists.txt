@@ -3,3 +3,4 @@ project(f.ixx)
 include(cmake/f.scaffolding.cmake)
 
 add_subdirectory(modules/f)
+add_subdirectory(modules/f-hpp)
