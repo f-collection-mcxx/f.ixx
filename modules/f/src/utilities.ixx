@@ -78,7 +78,4 @@ private:
     T unexpected;
 };
 
-// ReSharper disable once CppVariableCanBeMadeConstexpr
-const auto nonnull = not_equal_or_throw<void*>{nullptr};
-
 }
