@@ -7,12 +7,15 @@ import std;
 
 export namespace f {
 
-struct string_hasher {
+template<typename T>
+struct hash;
+
+template<typename S>
+requires std::convertible_to<const S, std::string_view>
+struct hash<S> {
     using is_transparent = void;
-    template<typename Str>
-    requires std::convertible_to<const Str, std::string_view>
-    size_t operator () (const Str& s) const noexcept {
-        return std::hash<std::string_view>{}(s);
+    size_t operator () (const auto& s) const noexcept {
+        return std::hash<std::string_view>{}(std::string_view{s});
     }
 };
 

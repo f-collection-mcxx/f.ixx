@@ -6,10 +6,10 @@ export module f:assert;
 import :exception;
 
 export namespace f {
-
-void assert(const bool condition) {
-    if (!condition)
-        throw exception("bad assert");
-}
-
+constexpr struct assert_t {
+    void operator >> (const bool condition) const {
+        if (!condition)
+            throw exception("bad assert");
+    }
+} assert;
 }
